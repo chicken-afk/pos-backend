@@ -11,6 +11,7 @@ import (
 type AuthController interface {
 	Login(c *fiber.Ctx) error
 	Logout(c *fiber.Ctx) error
+	RefreshToken(c *fiber.Ctx) error
 }
 
 type authController struct {
@@ -65,4 +66,21 @@ func (h *authController) Logout(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response.LogoutResponse{
 		Message: "Successfully logged out",
 	})
+}
+
+func (h *authController) RefreshToken(c *fiber.Ctx) error {
+	//Get refresh token from header
+	refreshToken := c.Get("Refresh-Token")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Missing Refresh-Token header",
+		})
+	}
+	res, err := h.authService.RefreshAccessToken(refreshToken)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	return c.Status(fiber.StatusOK).JSON(res)
 }

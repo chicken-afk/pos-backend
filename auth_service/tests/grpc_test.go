@@ -1,11 +1,11 @@
 package tests
 
 import (
-	"auth_service/app/dto/request"
-	"auth_service/app/repositories"
-	"auth_service/app/services"
-	"auth_service/pb"
 	"context"
+	"pos/auth_service/app/dto/request"
+	"pos/auth_service/app/repositories"
+	"pos/auth_service/app/services"
+	"pos/auth_service/pb"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

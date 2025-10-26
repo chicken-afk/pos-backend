@@ -14,11 +14,11 @@ var (
 
 func InitJWT() {
 	// Initialization code for JWT
-	priv, err := os.ReadFile("auth_service/jwks/private.pem")
+	priv, err := os.ReadFile("jwks/private.pem")
 	if err != nil {
 		panic(err)
 	}
-	pub, err := os.ReadFile("auth_service/jwks/public.pem")
+	pub, err := os.ReadFile("jwks/public.pem")
 	if err != nil {
 		panic(err)
 	}
