@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -39,6 +40,16 @@ func SaveImageToStorage(imageData []byte, imageName string) (string, error) {
 	}
 
 	imagePath := filepath.Join(dateStoragePath, imageName)
+
+	//Check if file already exists, if yes add timestamp to filename
+	if _, err := os.Stat(imagePath); err == nil {
+		timestamp := time.Now().Unix()
+		ext := filepath.Ext(imageName)
+		nameOnly := imageName[0 : len(imageName)-len(ext)]
+		imageName = fmt.Sprintf("%s_%d%s", nameOnly, timestamp, ext)
+		imagePath = filepath.Join(dateStoragePath, imageName)
+	}
+	//Write file
 	err := os.WriteFile(imagePath, imageData, 0644)
 	if err != nil {
 		log.Printf("Error saving image to storage: %v", err)
