@@ -11,4 +11,5 @@ func SetupAuthRoutes(router fiber.Router, authController handlers.AuthController
 	v1Router := router.Group("/v1")
 	v1Router.Post("/login", authController.Login)
 	v1Router.Post("/logout", middlewares.JWTAuth(), authController.Logout)
+	v1Router.Post("/refresh-token", authController.RefreshToken)
 }

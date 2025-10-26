@@ -21,8 +21,8 @@ import (
 func init() {
 	// Initialization code here
 	//Load godotenv, setup database, redis, fiber app, routes, etc.
-	if err := godotenv.Load("auth_service/.env"); err != nil {
-		log.Fatal("Error loading env file")
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading env file in main.go: ", err)
 	}
 
 	//Init JWT Config

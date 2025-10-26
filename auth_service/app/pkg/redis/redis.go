@@ -66,3 +66,12 @@ func RemoveRefreshToken(redisClient *redis.Client, sessionID string, email strin
 	}
 	return nil
 }
+
+func GetRefreshToken(redisClient *redis.Client, sessionID string, email string) (string, error) {
+	key := "refresh_token:" + sessionID + ":" + email
+	val, err := redisClient.Get(context.Background(), key).Result()
+	if err != nil {
+		return "", err
+	}
+	return val, nil
+}

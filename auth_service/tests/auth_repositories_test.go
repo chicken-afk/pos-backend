@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"auth_service/app/repositories"
+	"pos/auth_service/app/repositories"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

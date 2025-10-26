@@ -1,9 +1,9 @@
 package tests
 
 import (
-	"auth_service/app/pkg/jwt"
-	"auth_service/config"
 	"log"
+	"pos/auth_service/app/pkg/jwt"
+	"pos/auth_service/config"
 	"testing"
 
 	"github.com/joho/godotenv"

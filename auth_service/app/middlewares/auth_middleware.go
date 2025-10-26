@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"pos/auth_service/config"
@@ -22,8 +23,13 @@ func JWTAuth() fiber.Handler {
 			})
 		}
 
+		jwksUrl := os.Getenv("PUBLIC_JWKS_URL")
+		if jwksUrl == "" {
+			jwksUrl = "http://localhost:8080/api/.well-known/jwks.json"
+		}
+
 		tokenStr := strings.TrimPrefix(auth, "Bearer ")
-		token, err := jwtlib.VerifyToken(tokenStr, "http://localhost:8080/api/.well-known/jwks.json")
+		token, err := jwtlib.VerifyToken(tokenStr, jwksUrl)
 		if err != nil || !token.Valid {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error":  "invalid token",

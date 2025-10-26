@@ -3,13 +3,16 @@ package services
 import (
 	"fmt"
 	"log"
+	"os"
 	"pos/auth_service/app/dto/request"
 	"pos/auth_service/app/dto/response"
-	"pos/auth_service/app/pkg/jwt"
+	jwtPkg "pos/auth_service/app/pkg/jwt"
 	redisPkg "pos/auth_service/app/pkg/redis"
 	"pos/auth_service/app/repositories"
 	"pos/auth_service/app/utils"
 	"time"
+
+	"pos/shared/jwtlib"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -20,6 +23,7 @@ type AuthService interface {
 	Login(request request.LoginRequest) (response.LoginResponse, error)
 	ValidateToken(token string) (bool, error)
 	Logout(tokenStr string, sessionID string) error
+	RefreshAccessToken(refreshToken string) (response.LoginResponse, error)
 }
 
 type authService struct {
@@ -50,19 +54,21 @@ func (s *authService) Login(request request.LoginRequest) (response.LoginRespons
 		return loginResp, fmt.Errorf("invalid credentials")
 	}
 
-	accessToken, err := jwt.CreateTokenJwks(user, s.privateKeyJWT)
+	sessionID := uuid.New().String()
+
+	accessToken, err := jwtPkg.CreateTokenJwks(user, s.privateKeyJWT, sessionID)
 	if err != nil {
 		log.Println("Failed to create token:", err)
 		return loginResp, err
 	}
 
-	refreshToken, err := jwt.CreateRefreshTokenJwks(user.Email, s.privateKeyJWT)
+	refreshToken, err := jwtPkg.CreateRefreshTokenJwks(user.Email, s.privateKeyJWT, sessionID)
 	if err != nil {
 		log.Println("Failed to create refresh token:", err)
 		return loginResp, err
 	}
 
-	claims, err := jwt.ParseTokenJwks(refreshToken, s.publicKeyJWT)
+	claims, err := jwtPkg.ParseTokenJwks(refreshToken, s.publicKeyJWT)
 	if err != nil {
 		log.Println("Failed to parse token:", err)
 		return loginResp, err
@@ -73,7 +79,6 @@ func (s *authService) Login(request request.LoginRequest) (response.LoginRespons
 	log.Printf("Refresh token expiry (seconds): %d\n", refreshTokenExpiryAt)
 
 	// Store refresh token in Redis
-	sessionID := uuid.New().String()
 	loginResp.SessionID = sessionID
 	err = redisPkg.SetRefreshToken(s.redisClient, redisPkg.SetRefreshTokenParams{
 		SessionID:    sessionID,
@@ -99,7 +104,7 @@ func (s *authService) Login(request request.LoginRequest) (response.LoginRespons
 }
 
 func (s *authService) ValidateToken(token string) (bool, error) {
-	// isValid, err := jwt.ValidateToken(s.redisClient, token)
+	// isValid, err := jwtPkg.ValidateToken(s.redisClient, token)
 	// if err != nil {
 	// 	return false, err
 	// }
@@ -110,7 +115,7 @@ func (s *authService) ValidateToken(token string) (bool, error) {
 func (s *authService) Logout(tokenStr string, sessionID string) error {
 
 	//parse token to get expiry time
-	claims, err := jwt.ParseTokenJwks(tokenStr, s.publicKeyJWT)
+	claims, err := jwtPkg.ParseTokenJwks(tokenStr, s.publicKeyJWT)
 	if err != nil {
 		log.Println("Failed to parse token:", err)
 		return err
@@ -133,4 +138,59 @@ func (s *authService) Logout(tokenStr string, sessionID string) error {
 	}
 
 	return nil
+}
+
+func (s *authService) RefreshAccessToken(refreshToken string) (response.LoginResponse, error) {
+	var loginResp response.LoginResponse
+	// ✅ Verifikasi refresh token
+	publicJWKSUrl := os.Getenv("PUBLIC_JWKS_URL")
+	if publicJWKSUrl == "" {
+		publicJWKSUrl = "http://localhost:8080/api/.well-known/jwks.json"
+	}
+	token, err := jwtlib.VerifyToken(refreshToken, publicJWKSUrl)
+	if err != nil || !token.Valid {
+		return loginResp, fmt.Errorf("invalid refresh token")
+	}
+	claims, err := jwtPkg.ParseTokenJwks(refreshToken, s.publicKeyJWT)
+	if err != nil {
+		log.Println("Failed to parse token:", err)
+		return loginResp, err
+	}
+	email := claims.UserEmail
+	sessionID := claims.SessionID
+	tokenType := claims.Type
+
+	if tokenType != "refresh" {
+		return loginResp, fmt.Errorf("invalid token type")
+	}
+
+	// ✅ Cek refresh token di Redis
+	storedRefreshToken, err := redisPkg.GetRefreshToken(s.redisClient, sessionID, email)
+	if err != nil {
+		return loginResp, fmt.Errorf("refresh token not found")
+	}
+	if storedRefreshToken != refreshToken {
+		return loginResp, fmt.Errorf("refresh token mismatch")
+	}
+
+	// ✅ Buat access token baru
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return loginResp, err
+	}
+	accessToken, err := jwtPkg.CreateTokenJwks(user, s.privateKeyJWT, sessionID)
+	if err != nil {
+		log.Println("Failed to create token:", err)
+		return loginResp, err
+	}
+	loginResp.User.Email = user.Email
+	loginResp.User.Name = user.Name
+	loginResp.User.Role = user.Role
+	loginResp.User.Outlet = user.Outlet
+	loginResp.AccessToken = accessToken
+	loginResp.RefreshToken = refreshToken
+	loginResp.SessionID = sessionID
+	loginResp.TokenType = "Bearer"
+
+	return loginResp, nil
 }

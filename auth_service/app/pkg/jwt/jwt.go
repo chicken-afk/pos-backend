@@ -37,11 +37,13 @@ var (
 // JWTClaims struct: user_email + standard claims
 type JWTClaims struct {
 	UserEmail string `json:"user_email"`
+	SessionID string `json:"session_id"`
+	Type      string `json:"typ"`
 	jwt.RegisteredClaims
 }
 
 // CreateTokenJwks membuat JWT dengan JWKs return accessToken, error
-func CreateTokenJwks(user *entities.User, privateKeyJWT []byte) (string, error) {
+func CreateTokenJwks(user *entities.User, privateKeyJWT []byte, sessionId string) (string, error) {
 
 	var accessToken string
 
@@ -57,6 +59,7 @@ func CreateTokenJwks(user *entities.User, privateKeyJWT []byte) (string, error) 
 		"exp":        jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 		"iss":        "auth-service",
 		"typ":        "access",
+		"session_id": sessionId,
 	})
 	token.Header["kid"] = "rsa-key-1" // key identifier
 
@@ -68,7 +71,7 @@ func CreateTokenJwks(user *entities.User, privateKeyJWT []byte) (string, error) 
 	return accessToken, nil
 }
 
-func CreateRefreshTokenJwks(userEmail string, privateKeyJWT []byte) (string, error) {
+func CreateRefreshTokenJwks(userEmail string, privateKeyJWT []byte, sessionId string) (string, error) {
 	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyJWT)
 	if err != nil {
 		return "", err
@@ -79,6 +82,7 @@ func CreateRefreshTokenJwks(userEmail string, privateKeyJWT []byte) (string, err
 		"exp":        jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
 		"iss":        "auth-service",
 		"typ":        "refresh",
+		"session_id": sessionId,
 	})
 	token.Header["kid"] = "rsa-key-1" // key identifier
 	refreshToken, err := token.SignedString(privateKey)
