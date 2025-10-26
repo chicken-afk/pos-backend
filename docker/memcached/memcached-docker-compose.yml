@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  memcached:
+    image: memcached:alpine
+    container_name: memcached
+    restart: unless-stopped
+    command: memcached -m 256 -t 4 -v
+    ports:
+      - "11211:11211"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "memcached-tool", "127.0.0.1:11211", "stats"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+networks:
+  app-network:
+    driver: bridge

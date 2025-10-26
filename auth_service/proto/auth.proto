@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package auth_service.proto;
+
+option go_package = "pos/auth_service/pb";
+
+import "google/protobuf/timestamp.proto";
+
+message validateTokenRequest {
+    string token = 1;
+}
+
+message validateTokenResponse {
+    bool is_valid = 1;
+    google.protobuf.Timestamp expires_at = 2;
+}
