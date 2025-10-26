@@ -58,9 +58,10 @@ func SaveImageToStorage(imageData []byte, imageName string) (string, error) {
 	log.Printf("Image saved successfully: %s", imagePath)
 
 	//Image url path
-	imageEndpoint := os.Getenv("APP_IMAGE_URL")
+	imageEndpoint := os.Getenv("APP_URL")
+	log.Println("image endpoint url", imageEndpoint)
 	if imageEndpoint == "" {
-		imageEndpoint = "http://localhost:8081"
+		imageEndpoint = "http://localhost:8082"
 	}
 	fullImagePath := imageEndpoint + "/" + filepath.ToSlash(imagePath)
 	return fullImagePath, nil
