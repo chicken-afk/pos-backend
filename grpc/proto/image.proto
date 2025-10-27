@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package grpc.proto;
+
+option go_package = "pos/grpc/pb";
+
+message UploadImageRequest {
+    string image_data = 2;
+    string image_name = 3;
+}
+
+message UploadImageResponse {
+    string image_url = 1;
+}

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package grpc.proto;
+
+option go_package = "pos/grpc/pb";
+
+import "image.proto";
+
+service ImageService {
+    rpc UploadImage(UploadImageRequest) returns (UploadImageResponse);
+}
